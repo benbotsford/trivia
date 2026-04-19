@@ -1,4 +1,4 @@
-module github.com/btbots1994/trivia
+module github.com/benbotsford/trivia
 
 go 1.23
 

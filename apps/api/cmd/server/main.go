@@ -16,13 +16,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/btbots1994/trivia/internal/auth"
-	"github.com/btbots1994/trivia/internal/billing"
-	"github.com/btbots1994/trivia/internal/config"
-	"github.com/btbots1994/trivia/internal/game"
-	"github.com/btbots1994/trivia/internal/realtime"
-	"github.com/btbots1994/trivia/internal/store"
-	"github.com/btbots1994/trivia/internal/user"
+	"github.com/benbotsford/trivia/internal/auth"
+	"github.com/benbotsford/trivia/internal/billing"
+	"github.com/benbotsford/trivia/internal/config"
+	"github.com/benbotsford/trivia/internal/game"
+	"github.com/benbotsford/trivia/internal/realtime"
+	"github.com/benbotsford/trivia/internal/store"
+	"github.com/benbotsford/trivia/internal/user"
 )
 
 func main() {

@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/btbots1994/trivia/internal/store"
+	"github.com/benbotsford/trivia/internal/store"
 )
 
 // Service provides operations on host user accounts.

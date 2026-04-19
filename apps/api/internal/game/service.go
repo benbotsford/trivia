@@ -12,8 +12,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/btbots1994/trivia/internal/billing"
-	"github.com/btbots1994/trivia/internal/store"
+	"github.com/benbotsford/trivia/internal/billing"
+	"github.com/benbotsford/trivia/internal/store"
 )
 
 const codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // unambiguous chars
