@@ -1,0 +1,7 @@
+/* Tailwind's three directive layers:
+   - base:       normalises browser default styles (like a CSS reset)
+   - components: reserved for reusable component classes (we don't use any yet)
+   - utilities:  generates all the utility classes like bg-white, text-sm, etc. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
