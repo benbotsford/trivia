@@ -79,9 +79,9 @@ func main() {
 	// Services
 	// -------------------------------------------------------------------------
 	queries := store.New(pool)
-	_ = user.New(queries)
+	userSvc := user.New(queries)
 	entitlements := billing.NoopChecker{}
-	gameSvc := game.New(queries, entitlements)
+	gameSvc := game.New(queries, userSvc, entitlements)
 	hub := realtime.New()
 
 	// -------------------------------------------------------------------------
