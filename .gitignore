@@ -1,0 +1,47 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build artifacts
+*.test
+*.out
+dist/
+
+# Go modules
+vendor/
+
+# Environment / secrets
+.env
+.env.*
+*.env
+!.env.example
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Node / Next.js
+apps/web/node_modules/
+apps/web/.next/
+apps/web/out/
+
+# Generated files (keep in source control so CI doesn't need sqlc)
+# apps/api/internal/store/*.go  ← intentionally tracked
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Docker
+.dockerignore
+
+# k8s secrets (never commit real secrets)
+deploy/k8s/**/secret-*.yaml

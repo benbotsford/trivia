@@ -1,0 +1,22 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "queries"
+    schema: "migrations"
+    gen:
+      go:
+        package: "store"
+        out: "internal/store"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: false
+        # UUIDs are generated app-side with github.com/google/uuid (v7 via uuid.NewV7()),
+        # so we map Postgres uuid -> google/uuid.UUID instead of pgtype.UUID for ergonomic
+        # Go APIs at call sites.
+        overrides:
+          - db_type: "uuid"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
