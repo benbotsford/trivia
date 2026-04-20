@@ -53,18 +53,19 @@ interface Props {
   code: string
   gameID: string
   gameStatus: string
+  initialPlayers?: string[]
   wsBase: string
   hostToken: string
 }
 
-export default function HostGame({ code, gameID, gameStatus, wsBase, hostToken }: Props) {
+export default function HostGame({ code, gameID, gameStatus, initialPlayers = [], wsBase, hostToken }: Props) {
   const router = useRouter()
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectCount = useRef(0)
   const gameStatusRef = useRef(gameStatus)
 
   const [phase, setPhase] = useState<Phase>('connecting')
-  const [players, setPlayers] = useState<string[]>([])
+  const [players, setPlayers] = useState<string[]>(initialPlayers)
   const [errorMsg, setErrorMsg] = useState('')
 
   // Round state

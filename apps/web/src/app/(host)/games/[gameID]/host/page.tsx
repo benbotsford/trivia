@@ -38,8 +38,10 @@ export default async function HostGamePage({ params }: Props) {
 
   return (
     <HostGame
-      game={game}
-      initialPlayers={players}
+      code={game.code}
+      gameID={game.id}
+      gameStatus={game.status}
+      initialPlayers={players.map((p: { display_name: string }) => p.display_name)}
       wsBase={wsBase}
       hostToken={hostToken}
     />
