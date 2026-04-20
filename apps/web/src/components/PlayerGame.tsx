@@ -108,9 +108,12 @@ export default function PlayerGame({ code, wsBase }: Props) {
       case 'answer_accepted': {
         const p = msg.payload as AnswerAcceptedPayload
         if (p.question_id) {
+          // Don't apply the server's instant correct/incorrect verdict here — the host
+          // reviews answers manually before scores are released. Keeping `correct`
+          // undefined shows the neutral "submitted" state until round_scores arrives.
           setActiveQuestions(prev =>
             prev.map(q => q.id === p.question_id
-              ? { ...q, submittedAnswer: textInputs[q.id] ?? q.submittedAnswer, correct: p.correct }
+              ? { ...q, submittedAnswer: textInputs[q.id] ?? q.submittedAnswer }
               : q
             )
           )
@@ -401,7 +404,7 @@ function QuestionCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
       <div className={`h-[3px] ${submitted
-        ? (question.correct === true ? 'bg-emerald-500' : question.correct === false ? 'bg-brand-red' : 'bg-amber-400')
+        ? (question.correct === true ? 'bg-emerald-500' : question.correct === false ? 'bg-brand-red' : 'bg-slate-300')
         : 'bg-brand-blue'
       }`} />
       <div className="p-4">
@@ -413,7 +416,7 @@ function QuestionCard({
             <span className={`text-xs font-medium ${
               question.correct === true ? 'text-emerald-600' :
               question.correct === false ? 'text-brand-red' :
-              'text-amber-600'
+              'text-slate-400'
             }`}>
               {question.correct === true ? '✓ Correct' :
                question.correct === false ? '✗ Incorrect' :
@@ -431,7 +434,7 @@ function QuestionCard({
           <div className={`rounded-lg px-3 py-2 text-sm ${
             question.correct === true ? 'bg-emerald-50 text-emerald-700' :
             question.correct === false ? 'bg-red-50 text-brand-red' :
-            'bg-amber-50 text-amber-700'
+            'bg-slate-100 text-slate-500'
           }`}>
             Your answer: &ldquo;{question.submittedAnswer}&rdquo;
           </div>
