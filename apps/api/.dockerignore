@@ -1,0 +1,18 @@
+# Development artifacts
+.env
+.env.*
+!.env.example
+bin/
+
+# Go build cache
+*.test
+*.out
+
+# Migrations / seeds (not needed at runtime — baked into binary via goose embed or run separately)
+# Keep migrations/ included so goose can run them at startup if needed
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

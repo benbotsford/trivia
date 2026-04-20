@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write       # create tags, push CHANGELOG.md
+  packages: write       # push to ghcr.io
+  issues: write         # semantic-release can comment on issues
+  pull-requests: write  # semantic-release can comment on PRs
+
+jobs:
+  release:
+    name: Semantic release
+    runs-on: ubuntu-latest
+    outputs:
+      new_release_published: ${{ steps.release.outputs.new_release_published }}
+      new_release_version: ${{ steps.release.outputs.new_release_version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Semantic Release
+        id: release
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+          semantic_version: 24
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Inline .releaserc config via the config file created below
+        # semantic-release reads .releaserc.json from the repo root
+
+  docker:
+    name: Build & push Docker images
+    needs: release
+    if: needs.release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.release.outputs.new_release_version }}
+      REGISTRY: ghcr.io
+      OWNER: benbotsford
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/trivia-api:${{ env.VERSION }}
+            ghcr.io/${{ env.OWNER }}/trivia-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          push: true
+          tags: |
+            ghcr.io/${{ env.OWNER }}/trivia-web:${{ env.VERSION }}
+            ghcr.io/${{ env.OWNER }}/trivia-web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
