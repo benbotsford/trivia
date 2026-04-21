@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/benbotsford/trivia/compare/v1.2.0...v1.3.0) (2026-04-21)
+
+
+### Features
+
+* add Helm chart and chart-release workflow ([b64a130](https://github.com/benbotsford/trivia/commit/b64a1300330719464a77e4fb26919085d97532e5))
+
 # [1.2.0](https://github.com/benbotsford/trivia/compare/v1.1.2...v1.2.0) (2026-04-21)
 
 
