@@ -870,7 +870,7 @@ func (s *Service) createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.hub.InitRoom(gameID, quizID, bankID, code, roundSize)
+	s.hub.InitRoom(gameID, quizID, bankID, u.ID, code, roundSize)
 	writeJSON(w, http.StatusCreated, gameFromStore(game))
 }
 

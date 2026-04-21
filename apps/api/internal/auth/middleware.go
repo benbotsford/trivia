@@ -128,6 +128,44 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 	})
 }
 
+// ValidateToken validates a raw bearer token string and returns the decoded Claims.
+// It applies the same dev-bypass and JWKS-validation logic as Handler.
+//
+// This is intended for callers that cannot use the Authorization header — most
+// notably the WebSocket hub, because browsers do not support custom headers on
+// WebSocket upgrades. Pass the token via a query parameter instead and call
+// ValidateToken directly.
+func (m *Middleware) ValidateToken(ctx context.Context, raw string) (Claims, error) {
+	if m.devToken != "" && raw == m.devToken {
+		return Claims{Sub: "dev|local", Email: "dev@example.com"}, nil
+	}
+
+	if m.jwksURL == "" {
+		return Claims{}, fmt.Errorf("authentication not configured")
+	}
+
+	keySet, err := m.cache.Get(ctx, m.jwksURL)
+	if err != nil {
+		return Claims{}, fmt.Errorf("could not fetch JWKS: %w", err)
+	}
+
+	token, err := jwt.Parse([]byte(raw),
+		jwt.WithKeySet(keySet),
+		jwt.WithValidate(true),
+		jwt.WithAudience(m.audience),
+		jwt.WithIssuer(m.issuer),
+	)
+	if err != nil {
+		return Claims{}, fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims := Claims{Sub: token.Subject()}
+	if email, ok := token.Get("email"); ok {
+		claims.Email, _ = email.(string)
+	}
+	return claims, nil
+}
+
 // ClaimsFromContext retrieves the validated claims stored by the middleware.
 // Returns false if the context has no claims (unauthenticated route).
 func ClaimsFromContext(ctx context.Context) (Claims, bool) {

@@ -125,15 +125,18 @@ func main() {
 	queries := store.New(pool)
 	userSvc := user.New(queries)
 	entitlements := billing.NoopChecker{} // always grants access until Stripe is implemented
-	hub := realtime.New(queries, cfg.DevAuthToken)
-	gameSvc := game.New(queries, userSvc, entitlements, hub)
 
 	// -------------------------------------------------------------------------
 	// Auth middleware
 	// -------------------------------------------------------------------------
-	// This validates Auth0 JWTs on every authenticated route.
-	// It's created once here and reused across all requests.
+	// Created before the hub so the hub can call ValidateToken on WS upgrades.
+	// The hub needs the same token-validation logic as the HTTP middleware but
+	// cannot use the Authorization header (browsers don't support custom headers
+	// on WebSocket upgrades), so it reads ?token= and calls ValidateToken directly.
 	authMiddleware := auth.New(cfg.Auth0Domain, cfg.Auth0Audience, cfg.DevAuthToken)
+
+	hub := realtime.New(queries, authMiddleware, userSvc)
+	gameSvc := game.New(queries, userSvc, entitlements, hub)
 
 	// -------------------------------------------------------------------------
 	// Router

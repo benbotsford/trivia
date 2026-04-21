@@ -27,7 +27,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/benbotsford/trivia/internal/auth"
 	"github.com/benbotsford/trivia/internal/store"
+	"github.com/benbotsford/trivia/internal/user"
 )
 
 // MessageType identifies the kind of realtime event.
@@ -106,6 +108,7 @@ type room struct {
 
 	// Identifiers set when the room is initialised.
 	gameID uuid.UUID
+	hostID uuid.UUID // DB user ID of the host; used to verify WS auth
 	quizID uuid.UUID // zero value for bank-based (legacy) games
 	bankID uuid.UUID // used by legacy bank-based games only
 
@@ -142,10 +145,11 @@ type legacySubmission struct {
 	name      string
 }
 
-func newRoom(gameID, quizID, bankID uuid.UUID, roundSize int32) *room {
+func newRoom(gameID, quizID, bankID, hostID uuid.UUID, roundSize int32) *room {
 	return &room{
 		clients:     make(map[*client]struct{}),
 		gameID:      gameID,
+		hostID:      hostID,
 		quizID:      quizID,
 		bankID:      bankID,
 		roundSize:   roundSize,
@@ -208,16 +212,18 @@ type Hub struct {
 	mu    sync.RWMutex
 	rooms map[string]*room // keyed by game code
 
-	q            *store.Queries
-	devAuthToken string
+	q      *store.Queries
+	authMW *auth.Middleware // validates host bearer tokens (dev bypass or real JWTs)
+	users  *user.Service    // resolves Auth0 claims to DB user records
 }
 
 // New creates the Hub.
-func New(q *store.Queries, devAuthToken string) *Hub {
+func New(q *store.Queries, authMW *auth.Middleware, users *user.Service) *Hub {
 	return &Hub{
-		rooms:        make(map[string]*room),
-		q:            q,
-		devAuthToken: devAuthToken,
+		rooms:  make(map[string]*room),
+		q:      q,
+		authMW: authMW,
+		users:  users,
 	}
 }
 
@@ -227,29 +233,49 @@ func (h *Hub) RegisterRoutes(r chi.Router) {
 }
 
 // InitRoom creates the in-memory room when a game is created via HTTP.
-func (h *Hub) InitRoom(gameID, quizID, bankID uuid.UUID, code string, roundSize int32) {
+func (h *Hub) InitRoom(gameID, quizID, bankID, hostID uuid.UUID, code string, roundSize int32) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	h.rooms[code] = newRoom(gameID, quizID, bankID, roundSize)
+	h.rooms[code] = newRoom(gameID, quizID, bankID, hostID, roundSize)
 }
 
 // handleWebSocket upgrades an HTTP connection to WebSocket.
+//
+// Authentication:
+//   - Host:   GET /ws/{code}?token=<bearer>
+//     The bearer token is validated via authMW.ValidateToken — it accepts either
+//     the DEV_AUTH_TOKEN (local dev) or a real Auth0 JWT (production). After
+//     validation the resolved DB user must match the game's host_id.
+//   - Player: GET /ws/{code}?session=<token>
+//     The session token was issued by POST /join and stored in game_players.
 func (h *Hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	gameCode := chi.URLParam(r, "gameCode")
 
-	hostToken := r.URL.Query().Get("host_token")
-	sessionToken := r.URL.Query().Get("session")
+	tokenParam := r.URL.Query().Get("token")   // host auth
+	sessionToken := r.URL.Query().Get("session") // player auth
 
 	var isHost bool
 	var playerID uuid.UUID
+	var resolvedHostID uuid.UUID // set for host connections; checked against rm.hostID below
 
 	switch {
-	case hostToken != "":
-		if hostToken != h.devAuthToken {
+	case tokenParam != "":
+		// Validate the bearer token (dev bypass or real JWT).
+		claims, err := h.authMW.ValidateToken(r.Context(), tokenParam)
+		if err != nil {
+			slog.Debug("handleWebSocket: host token invalid", "err", err)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
+		// Resolve to a DB user (creates one on first login if needed).
+		u, err := h.users.GetOrCreate(r.Context(), claims.Sub, claims.Email)
+		if err != nil {
+			slog.Error("handleWebSocket: user lookup failed", "err", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		isHost = true
+		resolvedHostID = u.ID
 
 	case sessionToken != "":
 		player, err := h.q.GetPlayerBySessionToken(r.Context(), sessionToken)
@@ -260,7 +286,7 @@ func (h *Hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		playerID = player.ID
 
 	default:
-		http.Error(w, "must provide host_token or session query param", http.StatusBadRequest)
+		http.Error(w, "must provide token or session query param", http.StatusBadRequest)
 		return
 	}
 
@@ -271,6 +297,13 @@ func (h *Hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "game not found", http.StatusNotFound)
 			return
 		}
+	}
+
+	// Ownership check: the authenticated user must be the host of this specific game.
+	// This prevents any valid token holder from hijacking another host's room.
+	if isHost && rm.hostID != resolvedHostID {
+		http.Error(w, "forbidden", http.StatusForbidden)
+		return
 	}
 
 	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
@@ -1020,7 +1053,7 @@ func (h *Hub) tryRestoreRoom(ctx context.Context, code string) *room {
 		bankID = uuid.UUID(game.BankID.Bytes)
 	}
 
-	h.InitRoom(game.ID, quizID, bankID, code, game.RoundSize)
+	h.InitRoom(game.ID, quizID, bankID, game.HostID, code, game.RoundSize)
 	rm := h.getRoom(code)
 
 	if game.Status == store.GameStatusInProgress {
