@@ -6,6 +6,16 @@ interface Props {
   params: Promise<{ quizID: string }>
 }
 
+export async function generateMetadata({ params }: Props) {
+  const { quizID } = await params
+  try {
+    const quiz = await getQuiz(quizID)
+    return { title: `${quiz.name} — Quibble` }
+  } catch {
+    return { title: 'Quiz Editor — Quibble' }
+  }
+}
+
 export default async function QuizPage({ params }: Props) {
   const { quizID } = await params
 

@@ -2,6 +2,8 @@ import type { Quiz } from '@/types'
 import { listQuizzes } from '@/lib/api/quizzes'
 import QuizzesView from '@/components/QuizzesView'
 
+export const metadata = { title: 'Quizzes — Quibble' }
+
 export default async function QuizzesPage() {
   let quizzes: Quiz[] = []
   try {
