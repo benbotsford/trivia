@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/benbotsford/trivia/compare/v1.0.0...v1.0.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* resolve CI lint failures in API and web ([26e73b8](https://github.com/benbotsford/trivia/commit/26e73b812630be12df2438e4cbb0d5a260aff2fc))
+
 # 1.0.0 (2026-04-20)
 
 
