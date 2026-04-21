@@ -195,7 +195,7 @@ export default function PlayerGame({ code, wsBase }: Props) {
 
     function connect() {
       if (unmounted) return
-      const url = `${wsBase}/ws/${code}?session=${encodeURIComponent(sessionToken)}`
+      const url = `${wsBase}/ws/${code}?session=${encodeURIComponent(sessionToken!)}`
       ws = new WebSocket(url)
       wsRef.current = ws
 
