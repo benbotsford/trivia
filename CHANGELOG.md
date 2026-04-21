@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/benbotsford/trivia/compare/v1.0.4...v1.1.0) (2026-04-21)
+
+
+### Features
+
+* add docker-compose for local stack testing; build multi-platform images ([20d675a](https://github.com/benbotsford/trivia/commit/20d675a1408edbc5a7e7190c10c28833d2edd2a5))
+
 ## [1.0.4](https://github.com/benbotsford/trivia/compare/v1.0.3...v1.0.4) (2026-04-21)
 
 
