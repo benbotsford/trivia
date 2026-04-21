@@ -343,11 +343,17 @@ func (h *Hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Capture context before registering the defer so the write goroutine and
-	// sendCurrentState can use it. The defer uses context.Background() instead
-	// because r.Context() is cancelled when the client disconnects — exactly
-	// when the cleanup DB calls need to run.
-	ctx := r.Context()
+	// ctx is a child of the request context. Cancelling it is how the two
+	// goroutines (write pump below, read loop further down) signal each other
+	// to stop:
+	//   - write error  → cancel() → wsjson.Read unblocks  → read loop exits
+	//   - read error   → read loop returns → handleWebSocket returns
+	//                  → deferred cancel() → write pump's ctx.Done() fires
+	// Either way both goroutines exit and the deferred cleanup runs once.
+	// DB cleanup uses context.Background() because r.Context() (and therefore
+	// ctx) is already cancelled by the time the defer fires.
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
 
 	c := &client{conn: conn, send: make(chan Message, 64), isHost: isHost, playerID: playerID}
 	rm.addClient(c)
@@ -384,10 +390,22 @@ func (h *Hub) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		conn.Close(websocket.StatusNormalClosure, "bye")
 	}()
 
+	// Write pump: drains c.send and forwards messages to the WebSocket.
+	// It cancels ctx on write failure so the read loop is unblocked immediately
+	// rather than waiting for the OS to close the underlying TCP connection.
 	go func() {
-		for msg := range c.send {
-			if err := wsjson.Write(ctx, conn, msg); err != nil {
-				slog.Debug("ws write error", "err", err)
+		defer cancel() // ensure read loop is unblocked if we exit for any reason
+		for {
+			select {
+			case msg, ok := <-c.send:
+				if !ok {
+					return
+				}
+				if err := wsjson.Write(ctx, conn, msg); err != nil {
+					slog.Debug("ws write error", "err", err)
+					return
+				}
+			case <-ctx.Done():
 				return
 			}
 		}
