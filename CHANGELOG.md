@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/benbotsford/trivia/compare/v1.0.3...v1.0.4) (2026-04-21)
+
+
+### Bug Fixes
+
+* remove public/ copy from web Dockerfile (directory does not exist) ([b16dd67](https://github.com/benbotsford/trivia/commit/b16dd67ed636c5e92b4d6b687243953bd8017edf))
+
 ## [1.0.3](https://github.com/benbotsford/trivia/compare/v1.0.2...v1.0.3) (2026-04-21)
 
 
