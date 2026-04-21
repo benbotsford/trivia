@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Quiz } from '@/types'
-import { createQuizAction, deleteQuizAction } from '@/app/(host)/quizzes/actions'
+import { createQuizAction, deleteQuizAction, createGameFromQuizAction } from '@/app/(host)/quizzes/actions'
 
 interface Props {
   quizzes: Quiz[]
@@ -103,7 +103,18 @@ export default function QuizzesView({ quizzes: initial }: Props) {
 
 function QuizCard({ quiz, onDelete }: { quiz: Quiz; onDelete: () => void }) {
   const router = useRouter()
+  const [launching, startLaunch] = useTransition()
   const [deleting, startDelete] = useTransition()
+  const [launchError, setLaunchError] = useState('')
+
+  function handleLaunch() {
+    setLaunchError('')
+    startLaunch(async () => {
+      const result = await createGameFromQuizAction(quiz.id)
+      if (result?.error) setLaunchError(result.error)
+      // redirect happens inside the action on success
+    })
+  }
 
   function handleDelete() {
     if (!confirm(`Delete quiz "${quiz.name}"? This cannot be undone.`)) return
@@ -118,26 +129,38 @@ function QuizCard({ quiz, onDelete }: { quiz: Quiz; onDelete: () => void }) {
   }
 
   return (
-    <li className="flex items-center gap-4 rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-slate-800 truncate">{quiz.name}</p>
-        {quiz.description && (
-          <p className="mt-0.5 text-xs text-slate-500 truncate">{quiz.description}</p>
-        )}
+    <li className="rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 truncate">{quiz.name}</p>
+          {quiz.description && (
+            <p className="mt-0.5 text-xs text-slate-500 truncate">{quiz.description}</p>
+          )}
+        </div>
+        <button
+          onClick={handleLaunch}
+          disabled={launching}
+          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40 transition-colors"
+        >
+          {launching ? 'Launching…' : '▶ Launch Game'}
+        </button>
+        <button
+          onClick={() => router.push(`/quizzes/${quiz.id}`)}
+          className="rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 transition-colors"
+        >
+          Edit
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-500 hover:border-brand-red/40 hover:text-brand-red disabled:opacity-40 transition-colors"
+        >
+          {deleting ? '…' : 'Delete'}
+        </button>
       </div>
-      <button
-        onClick={() => router.push(`/quizzes/${quiz.id}`)}
-        className="rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/90 transition-colors"
-      >
-        Edit
-      </button>
-      <button
-        onClick={handleDelete}
-        disabled={deleting}
-        className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-slate-500 hover:border-brand-red/40 hover:text-brand-red disabled:opacity-40 transition-colors"
-      >
-        {deleting ? '…' : 'Delete'}
-      </button>
+      {launchError && (
+        <p className="mt-2 text-xs text-brand-red">{launchError}</p>
+      )}
     </li>
   )
 }
