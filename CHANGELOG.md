@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/benbotsford/trivia/compare/v1.0.2...v1.0.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* restore tsconfig.json in web Docker build context ([7dfb5b1](https://github.com/benbotsford/trivia/commit/7dfb5b1a16ce4c962512c84eb4e177305759c8b6))
+
 ## [1.0.2](https://github.com/benbotsford/trivia/compare/v1.0.1...v1.0.2) (2026-04-21)
 
 
