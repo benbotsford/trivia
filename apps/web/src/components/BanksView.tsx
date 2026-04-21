@@ -4,6 +4,9 @@ import { useState } from 'react'
 import type { Bank } from '@/types'
 import BankCard from '@/components/BankCard'
 import CreateBankForm from '@/components/CreateBankForm'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 6
 
 interface BanksViewProps {
   banks: Bank[]
@@ -16,10 +19,12 @@ export default function BanksView({ banks: initialBanks }: BanksViewProps) {
   // the server actions keeps the server cache in sync for future page loads.
   const [banks, setBanks] = useState<Bank[]>(initialBanks)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [page, setPage] = useState(1)
 
   // Called by CreateBankForm once the server action returns the new bank.
   function handleCreate(bank: Bank) {
     setBanks((prev) => [bank, ...prev]) // newest first, matching the API's sort order
+    setPage(1)
   }
 
   // Called by BankCard once the server action returns the updated bank.
@@ -29,8 +34,16 @@ export default function BanksView({ banks: initialBanks }: BanksViewProps) {
 
   // Called by BankCard once the server action confirms deletion.
   function handleDelete(bankId: string) {
-    setBanks((prev) => prev.filter((b) => b.id !== bankId))
+    setBanks((prev) => {
+      const next = prev.filter((b) => b.id !== bankId)
+      const maxPage = Math.max(1, Math.ceil(next.length / PAGE_SIZE))
+      setPage((p) => Math.min(p, maxPage))
+      return next
+    })
   }
+
+  const totalPages = Math.max(1, Math.ceil(banks.length / PAGE_SIZE))
+  const visibleBanks = banks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -78,16 +91,19 @@ export default function BanksView({ banks: initialBanks }: BanksViewProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {banks.map((bank) => (
-            <BankCard
-              key={bank.id}
-              bank={bank}
-              onUpdate={handleUpdate}
-              onDelete={handleDelete}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleBanks.map((bank) => (
+              <BankCard
+                key={bank.id}
+                bank={bank}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+        </>
       )}
     </main>
   )

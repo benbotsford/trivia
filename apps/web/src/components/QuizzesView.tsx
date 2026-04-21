@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Quiz } from '@/types'
 import { createQuizAction, deleteQuizAction, createGameFromQuizAction } from '@/app/(host)/quizzes/actions'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 8
 
 interface Props {
   quizzes: Quiz[]
@@ -16,6 +19,7 @@ export default function QuizzesView({ quizzes: initial }: Props) {
   const [name, setName] = useState('')
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -26,10 +30,24 @@ export default function QuizzesView({ quizzes: initial }: Props) {
       const result = await createQuizAction(fd)
       if (result?.error) {
         setError(result.error)
+      } else {
+        setPage(1)
       }
       // redirect happens server-side on success
     })
   }
+
+  function handleDelete(id: string) {
+    setQuizzes(prev => {
+      const next = prev.filter(x => x.id !== id)
+      const maxPage = Math.max(1, Math.ceil(next.length / PAGE_SIZE))
+      setPage(p => Math.min(p, maxPage))
+      return next
+    })
+  }
+
+  const totalPages = Math.max(1, Math.ceil(quizzes.length / PAGE_SIZE))
+  const visibleQuizzes = quizzes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -87,15 +105,18 @@ export default function QuizzesView({ quizzes: initial }: Props) {
           <p className="text-slate-400">No quizzes yet — create your first one above.</p>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {quizzes.map(q => (
-            <QuizCard
-              key={q.id}
-              quiz={q}
-              onDelete={() => setQuizzes(prev => prev.filter(x => x.id !== q.id))}
-            />
-          ))}
-        </ul>
+        <>
+          <ul className="space-y-3">
+            {visibleQuizzes.map(q => (
+              <QuizCard
+                key={q.id}
+                quiz={q}
+                onDelete={() => handleDelete(q.id)}
+              />
+            ))}
+          </ul>
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+        </>
       )}
     </main>
   )

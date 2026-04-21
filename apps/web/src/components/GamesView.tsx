@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import type { Game, Quiz } from '@/types'
 import { createGameAction, cancelGameAction } from '@/app/(host)/games/actions'
+import Pagination from '@/components/Pagination'
+
+const PAGE_SIZE = 8
 
 interface Props {
   games: Game[]
@@ -29,6 +32,7 @@ export default function GamesView({ games: initial, quizzes }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [page, setPage] = useState(1)
 
   function handleCreate(formData: FormData) {
     setError(null)
@@ -50,6 +54,9 @@ export default function GamesView({ games: initial, quizzes }: Props) {
       }
     })
   }
+
+  const totalPages = Math.max(1, Math.ceil(games.length / PAGE_SIZE))
+  const visibleGames = games.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -132,48 +139,51 @@ export default function GamesView({ games: initial, quizzes }: Props) {
           No games yet. Create one to get started.
         </div>
       ) : (
-        <div className="space-y-3">
-          {games.map((g) => (
-            <div
-              key={g.id}
-              className="flex items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm"
-            >
-              <div className="flex items-center gap-4">
-                {/* Game code */}
-                <span className="inline-block w-28 shrink-0 font-display text-lg font-semibold tracking-widest text-brand-blue">
-                  {g.code}
-                </span>
-                {/* Status badge */}
-                <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[g.status] ?? ''}`}>
-                  {STATUS_LABELS[g.status] ?? g.status}
-                </span>
-              </div>
+        <>
+          <div className="space-y-3">
+            {visibleGames.map((g) => (
+              <div
+                key={g.id}
+                className="flex items-center justify-between overflow-hidden rounded-xl border border-gray-100 bg-white px-5 py-4 shadow-sm"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Game code */}
+                  <span className="inline-block w-28 shrink-0 font-display text-lg font-semibold tracking-widest text-brand-blue">
+                    {g.code}
+                  </span>
+                  {/* Status badge */}
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLORS[g.status] ?? ''}`}>
+                    {STATUS_LABELS[g.status] ?? g.status}
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-3">
-                <span className="hidden text-xs text-slate-400 sm:block">
-                  {new Date(g.created_at).toLocaleDateString()}
-                </span>
-                {(g.status === 'lobby' || g.status === 'in_progress') && (
-                  <>
-                    <Link
-                      href={`/games/${g.id}/host`}
-                      className="rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-blue/90 transition-colors"
-                    >
-                      Open Host Panel
-                    </Link>
-                    <button
-                      onClick={() => handleCancel(g.id)}
-                      disabled={isPending}
-                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-brand-red/40 hover:text-brand-red disabled:opacity-40 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
+                <div className="flex items-center gap-3">
+                  <span className="hidden text-xs text-slate-400 sm:block">
+                    {new Date(g.created_at).toLocaleDateString()}
+                  </span>
+                  {(g.status === 'lobby' || g.status === 'in_progress') && (
+                    <>
+                      <Link
+                        href={`/games/${g.id}/host`}
+                        className="rounded-lg bg-brand-blue px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-blue/90 transition-colors"
+                      >
+                        Open Host Panel
+                      </Link>
+                      <button
+                        onClick={() => handleCancel(g.id)}
+                        disabled={isPending}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-brand-red/40 hover:text-brand-red disabled:opacity-40 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} />
+        </>
       )}
     </main>
   )
