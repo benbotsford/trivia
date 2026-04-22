@@ -11,10 +11,6 @@ import (
 	"github.com/benbotsford/trivia/internal/store"
 )
 
-// ptr is a small helper that turns a string literal into a *string.
-// Useful for constructing optional fields in test fixtures.
-func ptr(s string) *string { return &s }
-
 // ts wraps a time.Time in a valid pgtype.Timestamptz, matching what sqlc
 // returns when a NOT NULL timestamp column is scanned.
 func ts(t time.Time) pgtype.Timestamptz {
