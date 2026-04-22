@@ -178,6 +178,14 @@ export default function GamesView({ games: initial, quizzes }: Props) {
                       </button>
                     </>
                   )}
+                  {g.status === 'completed' && (
+                    <Link
+                      href={`/games/${g.id}/results`}
+                      className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-brand-blue/40 hover:text-brand-blue transition-colors"
+                    >
+                      View Results
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

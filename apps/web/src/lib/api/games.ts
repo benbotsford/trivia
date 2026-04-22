@@ -2,7 +2,7 @@
 // Server-side only — called from server actions and server components.
 // The DEV_AUTH_TOKEN is never exposed to the browser.
 
-import type { Game, GamePlayer } from '@/types'
+import type { Game, GamePlayer, GameResults } from '@/types'
 
 const API_BASE = (process.env.API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 const DEV_TOKEN = process.env.DEV_AUTH_TOKEN ?? ''
@@ -60,4 +60,10 @@ export async function listPlayers(gameID: string): Promise<GamePlayer[]> {
 // cancelGame transitions a lobby or in-progress game to 'cancelled'.
 export async function cancelGame(gameID: string): Promise<void> {
   await apiFetch(`/games/${gameID}`, { method: 'DELETE' })
+}
+
+// getGameResults returns per-player answer history and final scores for a completed game.
+export async function getGameResults(gameID: string): Promise<GameResults> {
+  const res = await apiFetch(`/games/${gameID}/results`)
+  return res.json()
 }

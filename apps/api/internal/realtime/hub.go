@@ -784,6 +784,23 @@ func (h *Hub) onReleaseScores(ctx context.Context, rm *room) {
 		}
 	}
 
+	// Persist individual answers to DB.
+	for playerID, pr := range playerResults {
+		for _, qr := range pr.questionResults {
+			if _, err := h.q.RecordAnswer(ctx, store.RecordAnswerParams{
+				ID:            uuid.New(),
+				GameID:        rm.gameID,
+				QuestionID:    qr.questionID,
+				PlayerID:      playerID,
+				Answer:        qr.yourAnswer,
+				IsCorrect:     qr.correct,
+				PointsAwarded: qr.pointsEarned,
+			}); err != nil {
+				slog.Error("onReleaseScores: record answer failed", "err", err)
+			}
+		}
+	}
+
 	// Send per-player round results.
 	for playerID, pr := range playerResults {
 		c, ok := playerClients[playerID]

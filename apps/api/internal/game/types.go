@@ -295,6 +295,32 @@ func gameFromStore(g store.Game) gameResponse {
 	return resp
 }
 
+// --- Game results response types ---
+
+// answerResultResponse is the per-question result for one player.
+type answerResultResponse struct {
+	QuestionID    uuid.UUID `json:"question_id"`
+	Answer        string    `json:"answer"`
+	IsCorrect     bool      `json:"is_correct"`
+	PointsAwarded int32     `json:"points_awarded"`
+	SubmittedAt   time.Time `json:"submitted_at"`
+}
+
+// playerResultResponse groups a player's identity, final score, and all their answers.
+type playerResultResponse struct {
+	PlayerID    uuid.UUID              `json:"player_id"`
+	DisplayName string                 `json:"display_name"`
+	TotalScore  int32                  `json:"total_score"`
+	Answers     []answerResultResponse `json:"answers"`
+}
+
+// gameResultsResponse is the full results payload for a completed game.
+type gameResultsResponse struct {
+	GameID  uuid.UUID              `json:"game_id"`
+	Code    string                 `json:"code"`
+	Players []playerResultResponse `json:"players"`
+}
+
 // nullText converts an optional *string into pgtype.Text for use in sqlc queries.
 // pgtype.Text is Postgres's nullable text type — Valid=false means SQL NULL.
 // When the caller passes nil (field not provided in the request), we produce

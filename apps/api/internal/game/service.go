@@ -111,6 +111,7 @@ func (s *Service) RegisterRoutes(r chi.Router) {
 		r.Route("/{gameID}", func(r chi.Router) {
 			r.Get("/", s.getGame)
 			r.Get("/players", s.listPlayers)
+			r.Get("/results", s.gameResults)
 			r.Delete("/", s.cancelGame)
 		})
 	})
@@ -1302,6 +1303,97 @@ func (s *Service) cancelGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// gameResults handles GET /games/{gameID}/results
+// Returns per-player answer history and final scores for a completed game.
+func (s *Service) gameResults(w http.ResponseWriter, r *http.Request) {
+	u, err := s.currentUser(r.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	gameID, err := mustParseUUID(r, "gameID")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	game, err := s.q.GetGameByID(r.Context(), gameID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "game not found")
+		return
+	}
+	if game.HostID != u.ID {
+		writeError(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
+	// Fetch all players so we can attach display names to answers.
+	players, err := s.q.ListActivePlayersInGame(r.Context(), gameID)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "gameResults: list players failed", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	// Build a lookup map: playerID → player record.
+	playerMap := make(map[uuid.UUID]store.GamePlayer, len(players))
+	for _, p := range players {
+		playerMap[p.ID] = p
+	}
+
+	// Fetch every answer recorded for this game.
+	answers, err := s.q.ListAnswersForGame(r.Context(), gameID)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "gameResults: list answers failed", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal error")
+		return
+	}
+
+	// Group answers by player.
+	type entry struct {
+		player  store.GamePlayer
+		answers []answerResultResponse
+	}
+	grouped := make(map[uuid.UUID]*entry)
+	for _, a := range answers {
+		if _, ok := grouped[a.PlayerID]; !ok {
+			p := playerMap[a.PlayerID]
+			grouped[a.PlayerID] = &entry{player: p}
+		}
+		grouped[a.PlayerID].answers = append(grouped[a.PlayerID].answers, answerResultResponse{
+			QuestionID:    a.QuestionID,
+			Answer:        a.Answer,
+			IsCorrect:     a.IsCorrect,
+			PointsAwarded: a.PointsAwarded,
+			SubmittedAt:   a.SubmittedAt.Time,
+		})
+	}
+
+	// Build the ordered response — players sorted by score descending.
+	playerResults := make([]playerResultResponse, 0, len(grouped))
+	for _, e := range grouped {
+		playerResults = append(playerResults, playerResultResponse{
+			PlayerID:    e.player.ID,
+			DisplayName: e.player.DisplayName,
+			TotalScore:  e.player.Score,
+			Answers:     e.answers,
+		})
+	}
+	// Sort descending by score.
+	for i := 1; i < len(playerResults); i++ {
+		for j := i; j > 0 && playerResults[j].TotalScore > playerResults[j-1].TotalScore; j-- {
+			playerResults[j], playerResults[j-1] = playerResults[j-1], playerResults[j]
+		}
+	}
+
+	writeJSON(w, http.StatusOK, gameResultsResponse{
+		GameID:  game.ID,
+		Code:    game.Code,
+		Players: playerResults,
+	})
 }
 
 // listPlayers handles GET /games/{gameID}/players

@@ -95,6 +95,27 @@ export interface GamePlayer {
   score: number
 }
 
+export interface GameAnswerResult {
+  question_id: string
+  answer: string
+  is_correct: boolean
+  points_awarded: number
+  submitted_at: string
+}
+
+export interface GamePlayerResult {
+  player_id: string
+  display_name: string
+  total_score: number
+  answers: GameAnswerResult[]
+}
+
+export interface GameResults {
+  game_id: string
+  code: string
+  players: GamePlayerResult[]
+}
+
 export interface JoinGameResponse {
   game_code: string
   session_token: string
