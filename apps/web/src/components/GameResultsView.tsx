@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import type { GameResults, GamePlayerResult } from '@/types'
 
 interface Props {
@@ -44,9 +44,8 @@ export default function GameResultsView({ results }: Props) {
               const total = player.answers.length
 
               return (
-                <>
+                <Fragment key={player.player_id}>
                   <tr
-                    key={player.player_id}
                     className="hover:bg-slate-50 cursor-pointer transition-colors"
                     onClick={() =>
                       setExpanded(isExpanded ? null : player.player_id)
@@ -80,7 +79,7 @@ export default function GameResultsView({ results }: Props) {
 
                   {/* Expanded answer detail */}
                   {isExpanded && (
-                    <tr key={`${player.player_id}-detail`}>
+                    <tr>
                       <td colSpan={5} className="px-5 pb-4 pt-0">
                         <div className="rounded-lg border border-gray-100 bg-slate-50 overflow-hidden">
                           {player.answers.length === 0 ? (
@@ -125,7 +124,7 @@ export default function GameResultsView({ results }: Props) {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               )
             })}
           </tbody>
