@@ -21,8 +21,68 @@ import (
 	"github.com/benbotsford/trivia/internal/billing"
 	"github.com/benbotsford/trivia/internal/realtime"
 	"github.com/benbotsford/trivia/internal/store"
-	"github.com/benbotsford/trivia/internal/user"
 )
+
+// querier is the set of database operations required by the game service.
+// Defined as an interface so tests can substitute a lightweight stub for
+// *store.Queries without needing a real Postgres connection.
+//
+// The compile-time assertion below confirms that *store.Queries satisfies it.
+type querier interface {
+	// Question banks
+	ListQuestionBanksByOwner(ctx context.Context, ownerID uuid.UUID) ([]store.QuestionBank, error)
+	CreateQuestionBank(ctx context.Context, arg store.CreateQuestionBankParams) (store.QuestionBank, error)
+	GetQuestionBank(ctx context.Context, id uuid.UUID) (store.QuestionBank, error)
+	UpdateQuestionBank(ctx context.Context, arg store.UpdateQuestionBankParams) (store.QuestionBank, error)
+	DeleteQuestionBank(ctx context.Context, id uuid.UUID) error
+
+	// Questions
+	ListQuestionsByBank(ctx context.Context, bankID uuid.UUID) ([]store.Question, error)
+	CreateQuestion(ctx context.Context, arg store.CreateQuestionParams) (store.Question, error)
+	GetQuestion(ctx context.Context, id uuid.UUID) (store.Question, error)
+	UpdateQuestion(ctx context.Context, arg store.UpdateQuestionParams) (store.Question, error)
+	DeleteQuestion(ctx context.Context, id uuid.UUID) error
+	ReorderQuestion(ctx context.Context, arg store.ReorderQuestionParams) (store.Question, error)
+	CountQuestionsInBank(ctx context.Context, bankID uuid.UUID) (int32, error)
+
+	// Quizzes (manually written; not yet in the generated store.Querier)
+	ListQuizzesByOwner(ctx context.Context, ownerID uuid.UUID) ([]store.Quiz, error)
+	CreateQuiz(ctx context.Context, arg store.CreateQuizParams) (store.Quiz, error)
+	GetQuizByID(ctx context.Context, id uuid.UUID) (store.Quiz, error)
+	UpdateQuiz(ctx context.Context, arg store.UpdateQuizParams) (store.Quiz, error)
+	DeleteQuiz(ctx context.Context, id uuid.UUID) error
+
+	// Quiz rounds
+	CreateQuizRound(ctx context.Context, arg store.CreateQuizRoundParams) (store.QuizRound, error)
+	ListQuizRounds(ctx context.Context, quizID uuid.UUID) ([]store.QuizRound, error)
+	ListQuizRoundsWithQuestions(ctx context.Context, quizID uuid.UUID) ([]store.RoundWithQuestions, error)
+	UpdateQuizRound(ctx context.Context, id uuid.UUID, title pgtype.Text) (store.QuizRound, error)
+	DeleteQuizRound(ctx context.Context, id uuid.UUID) error
+	CountQuizRounds(ctx context.Context, quizID uuid.UUID) (int32, error)
+	ListRoundQuestions(ctx context.Context, roundID uuid.UUID) ([]store.Question, error)
+	CountQuestionsInRound(ctx context.Context, roundID uuid.UUID) (int32, error)
+	SetRoundQuestionsOrdered(ctx context.Context, roundID uuid.UUID, questionIDs []uuid.UUID) error
+
+	// Games
+	CreateGame(ctx context.Context, arg store.CreateGameParams) (store.Game, error)
+	CountGamesByQuiz(ctx context.Context, quizID uuid.UUID) (int64, error)
+	ListGamesByHost(ctx context.Context, arg store.ListGamesByHostParams) ([]store.Game, error)
+	GetGameByID(ctx context.Context, id uuid.UUID) (store.Game, error)
+	CancelGame(ctx context.Context, id uuid.UUID) (store.Game, error)
+	GetActiveGameByCode(ctx context.Context, code string) (store.Game, error)
+	AddPlayer(ctx context.Context, arg store.AddPlayerParams) (store.GamePlayer, error)
+	ListActivePlayersInGame(ctx context.Context, gameID uuid.UUID) ([]store.GamePlayer, error)
+	ListAnswersForGame(ctx context.Context, gameID uuid.UUID) ([]store.Answer, error)
+}
+
+// compile-time check: *store.Queries must satisfy the querier interface.
+var _ querier = (*store.Queries)(nil)
+
+// userResolver resolves authenticated identity claims to database user records.
+// Extracted as an interface so tests can supply a fixed user without hitting Postgres.
+type userResolver interface {
+	GetOrCreate(ctx context.Context, auth0Sub, email string) (store.User, error)
+}
 
 // Character limits applied at the API layer (tighter than the DB constraint).
 const (
@@ -44,14 +104,15 @@ const codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 // Dependencies (database, user service, billing, realtime hub) are injected
 // via New() rather than being globals or singletons.
 type Service struct {
-	q            *store.Queries             // sqlc-generated database access layer
-	users        *user.Service              // resolves Auth0 identities to DB users
+	q            querier                    // database access; *store.Queries in production
+	users        userResolver               // resolves Auth0 identities to DB users
 	entitlements billing.EntitlementChecker // gates features behind subscription checks
 	hub          *realtime.Hub              // WebSocket broadcast layer
 }
 
 // New creates a Service with its dependencies.
-func New(q *store.Queries, users *user.Service, ent billing.EntitlementChecker, hub *realtime.Hub) *Service {
+// q and users are accepted as interfaces so tests can substitute lightweight stubs.
+func New(q querier, users userResolver, ent billing.EntitlementChecker, hub *realtime.Hub) *Service {
 	return &Service{q: q, users: users, entitlements: ent, hub: hub}
 }
 

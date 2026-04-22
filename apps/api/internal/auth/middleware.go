@@ -173,6 +173,13 @@ func ClaimsFromContext(ctx context.Context) (Claims, bool) {
 	return c, ok
 }
 
+// ContextWithClaims returns a copy of ctx with the given claims injected.
+// Intended for use in tests that need to simulate an authenticated request
+// without going through JWT validation.
+func ContextWithClaims(ctx context.Context, c Claims) context.Context {
+	return context.WithValue(ctx, claimsKey, c)
+}
+
 // bearerToken extracts the token string from an "Authorization: Bearer <token>" header.
 func bearerToken(r *http.Request) (string, bool) {
 	h := r.Header.Get("Authorization")
