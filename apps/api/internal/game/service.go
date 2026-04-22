@@ -65,7 +65,6 @@ type querier interface {
 
 	// Games
 	CreateGame(ctx context.Context, arg store.CreateGameParams) (store.Game, error)
-	CountGamesByQuiz(ctx context.Context, quizID uuid.UUID) (int64, error)
 	ListGamesByHost(ctx context.Context, arg store.ListGamesByHostParams) ([]store.Game, error)
 	GetGameByID(ctx context.Context, id uuid.UUID) (store.Game, error)
 	CancelGame(ctx context.Context, id uuid.UUID) (store.Game, error)
@@ -1089,17 +1088,10 @@ func (s *Service) deleteQuiz(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusForbidden, "forbidden")
 		return
 	}
-	// Block deletion if any games have been run from this quiz.
-	gameCount, err := s.q.CountGamesByQuiz(r.Context(), quizID)
-	if err != nil {
-		slog.ErrorContext(r.Context(), "deleteQuiz: count games failed", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal error")
-		return
-	}
-	if gameCount > 0 {
-		writeError(w, http.StatusConflict, "quiz has associated games and cannot be deleted")
-		return
-	}
+	// Past games that referenced this quiz will have their quiz_id set to NULL
+	// by the ON DELETE SET NULL FK (migration 0014). The games_bank_or_quiz
+	// check constraint permits this for completed/cancelled games, so deletion
+	// is always allowed regardless of game history.
 	if err := s.q.DeleteQuiz(r.Context(), quizID); err != nil {
 		slog.ErrorContext(r.Context(), "deleteQuiz: delete failed", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal error")
