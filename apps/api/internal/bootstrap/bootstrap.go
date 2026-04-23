@@ -22,7 +22,7 @@ var seedYAML []byte
 const (
 	systemAuth0Sub     = "system:bootstrap"
 	systemDisplayName  = "System"
-	defaultQuestionPts = 1000
+	defaultQuestionPts = 1
 )
 
 type seedFile struct {

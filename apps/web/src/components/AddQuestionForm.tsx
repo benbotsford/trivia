@@ -17,7 +17,7 @@ export default function AddQuestionForm({ bankId, onCreate, onClose }: AddQuesti
   const [isPending, startTransition] = useTransition()
   const [type, setType] = useState<QuestionType>('text')
   const [prompt, setPrompt] = useState('')
-  const [points, setPoints] = useState('1000')
+  const [points, setPoints] = useState('1')
 
   // Text question: list of accepted answers. First is always required.
   const [answers, setAnswers] = useState<string[]>([''])
@@ -68,7 +68,7 @@ export default function AddQuestionForm({ bankId, onCreate, onClose }: AddQuesti
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const pts = Math.max(1, parseInt(points, 10) || 1000)
+    const pts = Math.max(1, parseInt(points, 10) || 1)
 
     startTransition(async () => {
       if (type === 'text') {
