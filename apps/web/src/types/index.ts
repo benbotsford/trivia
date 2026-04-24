@@ -213,7 +213,14 @@ export interface ScoreboardUpdatePayload {
 }
 
 // lobby_update
-export interface LobbyUpdatePayload { player_name: string }
+export interface LobbyPlayer {
+  id: string
+  display_name: string
+}
+
+export interface LobbyUpdatePayload {
+  players: LobbyPlayer[]
+}
 
 // game_started
 export interface GameStartedPayload {
@@ -223,3 +230,52 @@ export interface GameStartedPayload {
   total?: number
   round_size?: number
 }
+
+// ---------------------------------------------------------------------------
+// Message type constants
+// ---------------------------------------------------------------------------
+// Single source of truth for the string literals used on the wire.
+// Import these instead of sprinkling raw strings across components and hooks.
+
+// Server → client
+export const MSG_LOBBY_UPDATE       = 'lobby_update'       as const
+export const MSG_GAME_STARTED       = 'game_started'       as const
+export const MSG_QUESTION_RELEASED  = 'question_released'  as const
+export const MSG_SCOREBOARD_UPDATE  = 'scoreboard_update'  as const
+export const MSG_ROUND_ENDED        = 'round_ended'        as const
+export const MSG_ROUND_REVIEW       = 'round_review'       as const
+export const MSG_ROUND_SCORES       = 'round_scores'       as const
+export const MSG_ROUND_LEADERBOARD  = 'round_leaderboard'  as const
+export const MSG_GAME_ENDED         = 'game_ended'         as const
+export const MSG_ANSWER_ACCEPTED    = 'answer_accepted'    as const
+
+// Client → server (host)
+export const MSG_START_GAME         = 'start_game'         as const
+export const MSG_RELEASE_QUESTION   = 'release_question'   as const
+export const MSG_END_ROUND          = 'end_round'          as const
+export const MSG_OVERRIDE_ANSWER    = 'override_answer'    as const
+export const MSG_RELEASE_SCORES     = 'release_scores'     as const
+export const MSG_START_NEXT_ROUND   = 'start_next_round'   as const
+export const MSG_END_GAME           = 'end_game'           as const
+
+// Client → server (player)
+export const MSG_SUBMIT_ANSWER      = 'submit_answer'      as const
+
+// ---------------------------------------------------------------------------
+// Inbound message discriminated union
+// ---------------------------------------------------------------------------
+// Exhaustive union of every message the server can send. Useful for typed
+// switch statements and ensures the switch in useGameSocket's onMessage is
+// checked at compile time.
+
+export type InboundMessage =
+  | { type: typeof MSG_LOBBY_UPDATE;      payload: LobbyUpdatePayload }
+  | { type: typeof MSG_GAME_STARTED;      payload: GameStartedPayload }
+  | { type: typeof MSG_QUESTION_RELEASED; payload: QuestionReleasedPayload }
+  | { type: typeof MSG_SCOREBOARD_UPDATE; payload: ScoreboardUpdatePayload }
+  | { type: typeof MSG_ROUND_ENDED;       payload: RoundEndedPayload }
+  | { type: typeof MSG_ROUND_REVIEW;      payload: RoundReviewPayload }
+  | { type: typeof MSG_ROUND_SCORES;      payload: RoundScoresPayload }
+  | { type: typeof MSG_ROUND_LEADERBOARD; payload: LeaderboardPayload }
+  | { type: typeof MSG_GAME_ENDED;        payload: LeaderboardPayload }
+  | { type: typeof MSG_ANSWER_ACCEPTED;   payload: AnswerAcceptedPayload }

@@ -3,6 +3,7 @@
 import { useCallback } from 'react'
 import { useGameSocket, SocketStatus } from './useGameSocket'
 import type {
+  LobbyPlayer,
   GameStartedPayload,
   QuestionReleasedPayload,
   ScoreboardUpdatePayload,
@@ -15,13 +16,7 @@ import type {
 // Types
 // ---------------------------------------------------------------------------
 
-// NOTE: types/index.ts defines LobbyUpdatePayload as { player_name: string }
-// but the actual wire format from the server is the shape below. The types
-// file needs updating — tracked for Step 3.
-export interface LobbyPlayer {
-  id: string
-  display_name: string
-}
+export type { LobbyPlayer }
 
 export interface HostSocketHandlers {
   onLobbyUpdate?: (players: LobbyPlayer[]) => void
