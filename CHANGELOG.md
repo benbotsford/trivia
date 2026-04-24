@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/play-quibble/trivia/compare/v1.6.0...v1.6.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* **web:** consolidate WebSocket types in types/index.ts ([df73f26](https://github.com/play-quibble/trivia/commit/df73f264a19abd1dee19624b516f9badf2f4ff3b))
+
 # [1.6.0](https://github.com/play-quibble/trivia/compare/v1.5.0...v1.6.0) (2026-04-24)
 
 
