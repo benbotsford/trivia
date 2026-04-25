@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/play-quibble/trivia/compare/v1.6.1...v1.6.2) (2026-04-25)
+
+
+### Bug Fixes
+
+* **ci:** fix golangci-lint action version, scorecard permissions, remove gitleaks ([234bdd9](https://github.com/play-quibble/trivia/commit/234bdd9e1e3c0200c5696288cb415f6c2818b356))
+
 ## [1.6.1](https://github.com/play-quibble/trivia/compare/v1.6.0...v1.6.1) (2026-04-24)
 
 
