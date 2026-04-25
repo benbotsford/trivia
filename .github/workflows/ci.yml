@@ -27,7 +27,7 @@ jobs:
           cache-dependency-path: apps/api/go.sum
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.6
           working-directory: apps/api

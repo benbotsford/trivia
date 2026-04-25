@@ -180,6 +180,7 @@ export function useGameSocket(
     }
 
     connectRef.current = connect
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus('connecting')
     connect()
 
