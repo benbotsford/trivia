@@ -1,0 +1,19 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard"],
+  "pinDigests": true,
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": ["gomod", "npm"],
+      "automerge": true,
+      "automergeType": "pr",
+      "stabilityDays": 3
+    },
+    {
+      "matchManagers": ["dockerfile", "github-actions"],
+      "automerge": false
+    }
+  ],
+  "ignorePaths": ["**/node_modules/**", "**/.next/**"]
+}

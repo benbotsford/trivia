@@ -45,3 +45,6 @@ coverage.html
 
 # k8s secrets (never commit real secrets)
 deploy/k8s/**/secret-*.yaml
+
+# MegaLinter
+megalinter-reports/

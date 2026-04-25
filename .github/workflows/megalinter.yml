@@ -1,0 +1,32 @@
+name: MegaLinter
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  megalinter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oxsecurity/megalinter/flavors/go@v9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+          VALIDATE_ALL_CODEBASE: false
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: megalinter-reports
+          path: megalinter-reports
+          retention-days: 5
