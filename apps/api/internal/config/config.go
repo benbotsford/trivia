@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 // Config holds all runtime configuration for the API server.
@@ -41,6 +42,30 @@ type Config struct {
 	// BootstrapSamples seeds sample question banks and questions on startup
 	// when true. Intended for local development; leave off in production.
 	BootstrapSamples bool
+
+	// --- Connection pool ---
+	// Neon's lower tiers cap concurrent connections in the low double digits.
+	// Use the Neon pooler host (*.pooler.neon.tech) in DATABASE_URL for the
+	// app, and the direct host only for migrations.
+
+	// DBMaxConns caps the total number of open connections in the pool.
+	// Default: 10 — safe for Neon Starter/Launch. Raise if using the pooler.
+	DBMaxConns int32
+
+	// DBMinConns is the minimum connections to keep open when idle.
+	// 0 lets the pool drain fully — preferred for Neon serverless endpoints
+	// which sleep after inactivity and don't need warm standby connections.
+	DBMinConns int32
+
+	// DBMaxConnLifetime is the maximum age of a connection before it is
+	// recycled. Prevents accumulating stale connections across Neon restarts.
+	DBMaxConnLifetime time.Duration
+
+	// DBMaxConnIdleTime closes connections that have been idle longer than
+	// this. Keep below Neon's idle-connection timeout (~5 min) so the pool
+	// proactively releases connections before Neon drops them, avoiding
+	// "connection reset" errors on the next request after a quiet period.
+	DBMaxConnIdleTime time.Duration
 }
 
 // Load reads configuration from environment variables.
@@ -58,6 +83,11 @@ func Load() (*Config, error) {
 		LogLevel:         getEnv("LOG_LEVEL", "info"),
 		AutoMigrate:      getEnvBool("AUTO_MIGRATE", false),
 		BootstrapSamples: getEnvBool("BOOTSTRAP_SAMPLES", false),
+
+		DBMaxConns:        getEnvInt32("DB_MAX_CONNS", 10),
+		DBMinConns:        getEnvInt32("DB_MIN_CONNS", 0),
+		DBMaxConnLifetime: getEnvDuration("DB_MAX_CONN_LIFETIME", 30*time.Minute),
+		DBMaxConnIdleTime: getEnvDuration("DB_MAX_CONN_IDLE_TIME", 3*time.Minute),
 	}
 	return c, nil
 }
@@ -86,4 +116,28 @@ func mustGetEnv(key string) string {
 		panic(fmt.Sprintf("required env var %q is not set", key))
 	}
 	return v
+}
+
+func getEnvInt32(key string, fallback int32) int32 {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	var n int32
+	if _, err := fmt.Sscanf(v, "%d", &n); err != nil || n < 0 {
+		return fallback
+	}
+	return n
+}
+
+func getEnvDuration(key string, fallback time.Duration) time.Duration {
+	v := os.Getenv(key)
+	if v == "" {
+		return fallback
+	}
+	d, err := time.ParseDuration(v)
+	if err != nil {
+		return fallback
+	}
+	return d
 }

@@ -60,7 +60,22 @@ func main() {
 
 	// pgxpool is a connection pool — it manages a set of reusable database
 	// connections, equivalent to a HikariCP or c3p0 pool in Java.
-	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	//
+	// ParseConfig lets us apply explicit pool limits on top of the DSN.
+	// This is important on Neon, whose lower tiers cap concurrent connections
+	// in the low double digits — pgx's defaults (~100) would exhaust the limit
+	// under any real load. See config.go for the DB_* env vars.
+	poolCfg, err := pgxpool.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("failed to parse database URL", "err", err)
+		os.Exit(1)
+	}
+	poolCfg.MaxConns = cfg.DBMaxConns
+	poolCfg.MinConns = cfg.DBMinConns
+	poolCfg.MaxConnLifetime = cfg.DBMaxConnLifetime
+	poolCfg.MaxConnIdleTime = cfg.DBMaxConnIdleTime
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		slog.Error("failed to connect to postgres", "err", err)
 		os.Exit(1)
