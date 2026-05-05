@@ -1,38 +1,7 @@
 // Server-side API client for quiz management.
-// Called from server actions and server components only.
 
 import type { Quiz, QuizDetail } from '@/types'
-
-const API_BASE = (process.env.API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
-const DEV_TOKEN = process.env.DEV_AUTH_TOKEN ?? ''
-
-async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const url = `${API_BASE}${path}`
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${DEV_TOKEN}`,
-      ...options.headers,
-    },
-    cache: 'no-store',
-  })
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    let message = `API ${options.method ?? 'GET'} ${path} → ${res.status}`
-    try {
-      const json = JSON.parse(body)
-      if (json?.error) message = json.error
-    } catch {
-      // not JSON — keep the raw body for debugging
-      if (body) message = body
-    }
-    throw new Error(message)
-  }
-
-  return res
-}
+import { apiFetch } from './client'
 
 export async function listQuizzes(): Promise<Quiz[]> {
   const res = await apiFetch('/quizzes')

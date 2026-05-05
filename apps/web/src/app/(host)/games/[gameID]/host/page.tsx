@@ -3,6 +3,7 @@
 // to the HostGame client component.
 import { notFound } from 'next/navigation'
 import { getGame, listPlayers } from '@/lib/api/games'
+import { getAuthToken } from '@/lib/api/client'
 import HostGame from '@/components/HostGame'
 
 interface Props {
@@ -31,10 +32,12 @@ export default async function HostGamePage({ params }: Props) {
 
   // Read server-only env vars and pass them down as props.
   // The client component needs the WS URL and host token to connect.
+  // Browsers cannot send custom headers on WebSocket upgrades, so the token
+  // is passed as a query parameter — the Go hub validates it via ValidateToken.
   const wsBase = (process.env.API_URL ?? 'http://localhost:8080')
     .replace(/^http/, 'ws')
     .replace(/\/$/, '')
-  const hostToken = process.env.DEV_AUTH_TOKEN ?? ''
+  const hostToken = await getAuthToken()
 
   return (
     <HostGame

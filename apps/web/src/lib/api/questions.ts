@@ -1,28 +1,7 @@
-// API client for questions within a bank.
-// All functions run server-side only (called from server actions / server components).
+// API client for questions within a bank. Server-side only.
 
 import type { Question, MCChoice } from '@/types'
-
-const API_BASE = (process.env.API_URL ?? 'http://localhost:8080').replace(/\/$/, '')
-const DEV_TOKEN = process.env.DEV_AUTH_TOKEN ?? ''
-
-async function apiFetch(path: string, options: RequestInit = {}): Promise<Response> {
-  const url = `${API_BASE}${path}`
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${DEV_TOKEN}`,
-      ...options.headers,
-    },
-    cache: 'no-store',
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    throw new Error(`API ${options.method ?? 'GET'} ${path} → ${res.status}: ${body}`)
-  }
-  return res
-}
+import { apiFetch } from './client'
 
 // listQuestions returns all questions for a bank, ordered by position.
 export async function listQuestions(bankId: string): Promise<Question[]> {
